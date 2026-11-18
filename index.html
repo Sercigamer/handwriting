@@ -1,0 +1,159 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
+<title>Handschrift</title>
+<meta name="description" content="Eigene Handschrift zeichnen und Text darin setzen – für GoodNotes.">
+<meta name="theme-color" content="#151515">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Handschrift">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icons/icon-192.png">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<div id="app">
+  <header class="top">
+    <div class="brand"><img src="icons/icon-192.png" alt=""><span>Handschrift</span></div>
+    <nav class="tabs" role="tablist">
+      <button class="tab" data-view="draw" role="tab">Zeichnen</button>
+      <button class="tab" data-view="write" role="tab">Schreiben</button>
+      <button class="tab" data-view="data" role="tab">Daten</button>
+    </nav>
+    <div class="progress" id="progress" title="Gezeichnete Zeichen"></div>
+  </header>
+
+  <!-- ============ Zeichnen ============ -->
+  <section class="view" id="view-draw">
+    <div class="draw-layout">
+      <aside class="charpanel">
+        <div class="charpanel-head">
+          <select id="charGroup" aria-label="Zeichengruppe"></select>
+          <button class="ghost small" id="addCharBtn" title="Eigenes Zeichen hinzufügen">+ Zeichen</button>
+        </div>
+        <div class="chargrid" id="charGrid"></div>
+      </aside>
+      <div class="editor">
+        <div class="editor-head">
+          <div class="current-char" id="currentChar">a</div>
+          <div class="editor-info">
+            <div id="charHint" class="hint"></div>
+            <div class="variants" id="variants"></div>
+          </div>
+        </div>
+        <div class="canvas-wrap" id="canvasWrap">
+          <canvas id="drawCanvas"></canvas>
+          <div class="pen-badge" id="penBadge" hidden>Stift erkannt – Finger werden ignoriert</div>
+        </div>
+        <div class="editor-actions">
+          <button class="ghost" id="undoBtn" title="Strg+Z">↶ Rückgängig</button>
+          <button class="ghost" id="clearBtn" title="Entf">Leeren</button>
+          <span class="spacer"></span>
+          <button class="ghost" id="saveBtn" title="Speichert als Variante und bleibt beim Zeichen">Speichern</button>
+          <button class="primary" id="saveNextBtn" title="Enter">Speichern + weiter →</button>
+        </div>
+        <p class="tip">Auf der durchgezogenen Linie schreiben. Klein­buchstaben bis zur gepunkteten Linie, Groß­buchstaben und Oberlängen bis zur oberen. Mehrere Varianten pro Zeichen machen die Schrift natürlicher (Ziel: <span id="targetLabel">3</span>).</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ Schreiben ============ -->
+  <section class="view" id="view-write">
+    <div class="write-layout">
+      <div class="write-controls">
+        <textarea id="textInput" rows="6" placeholder="Text hier einfügen …"></textarea>
+        <div class="controls-grid">
+          <label>Farbe
+            <div class="colors" id="colors"></div>
+          </label>
+          <label>Größe <output id="sizeOut"></output>
+            <input type="range" id="size" min="12" max="120" step="1">
+          </label>
+          <label>Strichstärke <output id="thickOut"></output>
+            <input type="range" id="thick" min="0.4" max="3" step="0.05">
+          </label>
+          <label>Zeilenabstand <output id="lineOut"></output>
+            <input type="range" id="lineGap" min="0.7" max="2.2" step="0.05">
+          </label>
+          <label>Zeilenbreite <output id="widthOut"></output>
+            <input type="range" id="lineWidth" min="200" max="2400" step="10">
+          </label>
+          <label>Unordnung <output id="varOut"></output>
+            <input type="range" id="variation" min="0" max="100" step="1">
+          </label>
+          <label>Buchstabenabstand <output id="trackOut"></output>
+            <input type="range" id="tracking" min="-6" max="14" step="0.5">
+          </label>
+          <label class="check"><input type="checkbox" id="pressure"> Stiftdruck nutzen</label>
+        </div>
+        <div class="row">
+          <button class="ghost" id="reseedBtn">🎲 Neu würfeln</button>
+          <select id="bgSelect" aria-label="Vorschau-Hintergrund">
+            <option value="lined">Vorschau: liniert</option>
+            <option value="plain">Vorschau: weiß</option>
+            <option value="dark">Vorschau: dunkel</option>
+            <option value="checker">Vorschau: transparent</option>
+          </select>
+        </div>
+      </div>
+      <div class="write-output">
+        <div class="export-bar">
+          <button class="primary big" id="copyBtn">Kopieren für GoodNotes</button>
+          <button class="ghost" id="shareBtn">Teilen …</button>
+          <button class="ghost" id="pngBtn">PNG</button>
+          <button class="ghost" id="pdfBtn">PDF</button>
+        </div>
+        <div id="missing" class="missing" hidden></div>
+        <div class="preview" id="preview">
+          <img id="previewImg" alt="Vorschau in deiner Handschrift" draggable="true">
+          <div class="empty" id="previewEmpty">Noch nichts zu zeigen. Zeichne erst ein paar Buchstaben und tippe dann Text ein.</div>
+        </div>
+        <p class="tip">iPad: Bild auch direkt in GoodNotes ziehen (Split View). Eingefügt bleibt der Hintergrund durchsichtig.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ Daten ============ -->
+  <section class="view" id="view-data">
+    <div class="data-layout">
+      <div class="card">
+        <h2>Sichern &amp; übertragen</h2>
+        <p>Deine Buchstaben liegen nur auf diesem Gerät. Exportiere sie als Datei, um sie auf dem iPad bzw. PC zu importieren – oder einfach als Backup.</p>
+        <div class="row">
+          <button class="primary" id="exportBtn">Exportieren</button>
+          <button class="ghost" id="importBtn">Importieren …</button>
+          <input type="file" id="importFile" accept=".json,application/json" hidden>
+        </div>
+        <p class="hint" id="storageInfo"></p>
+      </div>
+      <div class="card">
+        <h2>Einstellungen</h2>
+        <label class="inline">Varianten-Ziel pro Zeichen
+          <input type="number" id="targetVariants" min="1" max="8" step="1">
+        </label>
+        <label class="inline">Wortabstand
+          <input type="range" id="wordSpace" min="10" max="70" step="1"> <output id="wordOut"></output>
+        </label>
+        <label class="check"><input type="checkbox" id="ghostToggle"> Beim Zeichnen andere Varianten blass einblenden</label>
+      </div>
+      <div class="card danger">
+        <h2>Zurücksetzen</h2>
+        <p>Löscht alle gezeichneten Zeichen auf diesem Gerät. Vorher exportieren!</p>
+        <button class="danger-btn" id="wipeBtn">Alle Zeichen löschen …</button>
+      </div>
+      <p class="hint version" id="versionInfo"></p>
+    </div>
+  </section>
+
+  <div class="toast" id="toast" role="status" aria-live="polite"></div>
+</div>
+<script src="js/store.js"></script>
+<script src="js/ink.js"></script>
+<script src="js/pdf.js"></script>
+<script src="js/app.js"></script>
+</body>
+</html>

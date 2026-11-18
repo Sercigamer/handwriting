@@ -1,0 +1,17 @@
+{
+  "name": "Handschrift",
+  "short_name": "Handschrift",
+  "description": "Eigene Handschrift zeichnen und Text darin setzen – für GoodNotes.",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "any",
+  "background_color": "#151515",
+  "theme_color": "#151515",
+  "lang": "de",
+  "icons": [
+    { "src": "icons/icon-192.png", "sizes": "192x192", "type": "image/png" },
+    { "src": "icons/icon-512.png", "sizes": "512x512", "type": "image/png" },
+    { "src": "icons/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ]
+}
