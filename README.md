@@ -5,9 +5,9 @@ in GoodNotes einfügen. Läuft als Web-App (PWA) auf iPad/iPhone und am PC, komp
 
 ## Benutzen
 
-1. **Zeichnen:** Zeichen links auswählen, auf die Linien schreiben, *Speichern + weiter* (Enter).
+1. **Zeichnen:** 114 Zeichen (a–z, A–Z, Umlaute, ß, Ziffern, Satz- und Anführungszeichen, Symbole wie + − = § @, Währungen € $ £ ¥) plus eigene. Zeichen auswählen, auf die Linien schreiben, *Speichern + weiter* (Enter).
    Pro Zeichen 3 Varianten (einstellbar). Varianten antippen = korrigieren, ✕ = löschen.
-   Am PC: Buchstaben-Taste wählt das Zeichen, Strg+Z = rückgängig, Entf = leeren.
+   Am PC: Buchstaben-Taste wählt das Zeichen, ←/→ blättert, Strg+Z = rückgängig, Entf = leeren.
    Mit Apple Pencil werden Finger/Handballen automatisch ignoriert.
 2. **Schreiben:** Text einfügen. Farbe, Größe, Strichstärke, Zeilenabstand, Zeilenbreite, Unordnung, 🎲 neu würfeln.
 3. **Kopieren für GoodNotes** legt ein transparentes PNG in die Zwischenablage → in GoodNotes einsetzen.

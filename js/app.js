@@ -1,46 +1,84 @@
 (function () {
   'use strict';
-  const APP_VERSION = '1.0.0';
+  const APP_VERSION = '1.1.0';
   const { M } = Ink;
   const $ = (id) => document.getElementById(id);
 
-  // ---------- Zeichensätze ----------
+  // ---------- Zeichensatz: 114 Zeichen ----------
   const GROUPS = [
     { key: 'lower', name: 'Kleinbuchstaben', chars: [...'abcdefghijklmnopqrstuvwxyz'] },
     { key: 'upper', name: 'Großbuchstaben', chars: [...'ABCDEFGHIJKLMNOPQRSTUVWXYZ'] },
-    { key: 'umlaut', name: 'Umlaute & ß', chars: [...'äöüÄÖÜß'] },
+    { key: 'umlaut', name: 'Umlaute & Eszett', chars: [...'äöüÄÖÜß'] },
     { key: 'digits', name: 'Ziffern', chars: [...'0123456789'] },
-    { key: 'punct', name: 'Satzzeichen', chars: [...'.,;:!?-()"„“\'/&+=%€@*#'] },
+    { key: 'punct', name: 'Satzzeichen', chars: [...'.,;:!?-–_()[]{}'] },
+    { key: 'quotes', name: 'Anführungszeichen', chars: [...'"„“”\'‚‘’'] },
+    { key: 'symbols', name: 'Symbole & Mathe', chars: [...'/\\|&+=<>%×÷~^°§*#@'] },
+    { key: 'currency', name: 'Währungen', chars: [...'€$£¥'] },
   ];
-  const HINTS = {
-    lower: 'Kleinbuchstabe: bis zur gepunkteten Linie, Ober-/Unterlängen darüber hinaus.',
-    upper: 'Großbuchstabe: von der Grundlinie bis zur oberen Linie.',
-    umlaut: 'Mit Pünktchen bzw. wie du ß sonst schreibst.',
-    digits: 'Ziffern meist so hoch wie Großbuchstaben.',
-    punct: 'Satzzeichen an der richtigen Höhe: Punkt auf der Grundlinie, Anführungszeichen oben.',
+  const NAMES = {
+    '.': 'Punkt', ',': 'Komma', ';': 'Semikolon', ':': 'Doppelpunkt', '!': 'Ausrufezeichen', '?': 'Fragezeichen',
+    '-': 'Bindestrich / Minus', '–': 'Gedankenstrich', '_': 'Unterstrich', '(': 'Klammer auf', ')': 'Klammer zu',
+    '[': 'Eckige Klammer auf', ']': 'Eckige Klammer zu', '{': 'Geschweifte Klammer auf', '}': 'Geschweifte Klammer zu',
+    '"': 'Anführungszeichen', '„': 'Anführungszeichen unten', '“': 'Anführungszeichen oben', '”': 'Schlusszeichen (englisch)',
+    "'": 'Apostroph', '‚': 'Einfaches Anführungszeichen unten', '‘': 'Einfaches Anführungszeichen oben', '’': 'Einfaches Schlusszeichen',
+    '/': 'Schrägstrich', '\\': 'Backslash', '|': 'Senkrechter Strich', '&': 'Und-Zeichen', '+': 'Plus', '=': 'Gleich',
+    '<': 'Kleiner als', '>': 'Größer als', '%': 'Prozent', '×': 'Mal', '÷': 'Geteilt', '~': 'Tilde', '^': 'Dach',
+    '°': 'Grad', '§': 'Paragraf', '*': 'Stern', '#': 'Raute', '@': 'At-Zeichen',
+    '€': 'Euro', '$': 'Dollar', '£': 'Pfund', '¥': 'Yen', 'ß': 'Eszett',
+  };
+  const GROUP_HINTS = {
+    lower: 'Bis zur gepunkteten Linie – Ober- und Unterlängen darüber hinaus.',
+    upper: 'Von der Grundlinie bis zur oberen gestrichelten Linie.',
+    umlaut: 'So, wie du sie sonst auch schreibst.',
+    digits: 'Meist so hoch wie Großbuchstaben.',
+    punct: 'Auf die richtige Höhe achten.',
+    quotes: 'Auf die richtige Höhe achten.',
+    symbols: 'Ungefähr in Buchstabengröße, mittig zur Zeile.',
+    currency: 'So hoch wie Großbuchstaben.',
     custom: 'Eigenes Zeichen.',
+  };
+  const CHAR_HINTS = {
+    '.': 'Punkt direkt auf die Grundlinie.', ',': 'Auf der Grundlinie, Schwanz etwas darunter.', ';': 'Komma auf der Grundlinie, Punkt darüber.',
+    '„': 'Unten auf der Grundlinie, wie zwei kleine Kommas.', '‚': 'Unten auf der Grundlinie, wie ein Komma.',
+    '“': 'Oben an der oberen Linie.', '”': 'Oben an der oberen Linie.', '"': 'Oben an der oberen Linie.', "'": 'Oben an der oberen Linie.',
+    '‘': 'Oben an der oberen Linie.', '’': 'Oben an der oberen Linie.', '_': 'Auf oder knapp unter der Grundlinie.',
+    '-': 'Kurzer Strich auf halber x-Höhe.', '–': 'Längerer Strich auf halber x-Höhe.', '°': 'Kleiner Kreis oben.', '^': 'Klein und oben.',
   };
 
   const DEFAULTS = {
     color: '#1c1c1c', size: 30, thick: 1.15, lineGap: 1.0, lineWidth: 720, variation: 55, tracking: 0,
-    wordSpace: 34, pressure: true, bg: 'lined', target: 3, ghost: false, group: 'all', text: '', custom: [], seed: 1234,
+    wordSpace: 34, pressure: true, bg: 'lined', target: 3, ghost: false, template: false, text: '', custom: [], seed: 1234,
+    welcomed: false,
   };
-  const COLORS = ['#1c1c1c', '#1d3a8a', '#2563eb', '#c62828', '#1b7f3b', '#6d28d9'];
+  const COLORS = ['#1c1c1c', '#1d3a8a', '#2563eb', '#c62828', '#1b7f3b', '#6d28d9', '#ffffff'];
+  const INK = '#f1f1f5';
 
   let settings = Object.assign({}, DEFAULTS, Store.loadSettings());
+  if (settings.bg === 'plain') settings.bg = 'lined';
   let glyphs = {};
   let current = 'a';
-  let strokes = [];          // aktuelle Zeichnung: Array von Arrays [x,y,p,...]
-  let editingIdx = null;     // Index der Variante, die gerade korrigiert wird
+  let strokes = [];
+  let editingIdx = null;
   let dirty = false;
   let penSeen = false;
 
   const saveSettings = () => Store.saveSettings(settings);
-  const allChars = () => GROUPS.flatMap(g => g.chars).concat(settings.custom.filter(c => !GROUPS.some(g => g.chars.includes(c))));
-  const groupOf = (ch) => (GROUPS.find(g => g.chars.includes(ch)) || { key: 'custom' }).key;
+  const baseChars = GROUPS.flatMap(g => g.chars);
+  const allChars = () => baseChars.concat(settings.custom.filter(c => !baseChars.includes(c)));
+  const groupOf = (ch) => (GROUPS.find(g => g.chars.includes(ch)) || { key: 'custom', name: 'Eigene Zeichen', chars: settings.custom });
   const count = (ch) => (glyphs[ch] ? glyphs[ch].length : 0);
+  const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+  const narrow = () => window.matchMedia('(max-width: 900px)').matches;
 
-  // ---------- Toast ----------
+  function charName(ch) {
+    if (NAMES[ch]) return NAMES[ch];
+    if (/[a-zäöü]/.test(ch)) return 'Kleines ' + ch;
+    if (/[A-ZÄÖÜ]/.test(ch)) return 'Großes ' + ch;
+    if (/[0-9]/.test(ch)) return 'Ziffer ' + ch;
+    return 'Zeichen ' + ch;
+  }
+
+  // ---------- Toast & Dialog ----------
   let toastTimer = 0;
   function toast(msg, err) {
     const t = $('toast');
@@ -51,14 +89,45 @@
     toastTimer = setTimeout(() => t.classList.remove('show'), err ? 4500 : 2600);
   }
 
+  function dialog({ title, text = '', ok = 'OK', cancel = 'Abbrechen', danger = false, input = null }) {
+    return new Promise((resolve) => {
+      const m = $('modal'), inp = $('modalInput'), okB = $('modalOk'), caB = $('modalCancel');
+      $('modalTitle').textContent = title;
+      $('modalText').textContent = text;
+      $('modalText').hidden = !text;
+      okB.textContent = ok; caB.textContent = cancel;
+      okB.classList.toggle('danger', danger);
+      okB.classList.toggle('primary', !danger);
+      inp.hidden = input === null;
+      inp.value = input || '';
+      m.hidden = false;
+      setTimeout(() => (input !== null ? inp : okB).focus(), 30);
+      const done = (v) => {
+        m.hidden = true;
+        okB.onclick = caB.onclick = m.onclick = inp.onkeydown = null;
+        document.removeEventListener('keydown', onKey, true);
+        resolve(v);
+      };
+      const onKey = (e) => { if (e.key === 'Escape') { e.preventDefault(); e.stopPropagation(); done(input !== null ? null : false); } };
+      document.addEventListener('keydown', onKey, true);
+      okB.onclick = () => done(input !== null ? inp.value : true);
+      caB.onclick = () => done(input !== null ? null : false);
+      m.onclick = (e) => { if (e.target === m) done(input !== null ? null : false); };
+      inp.onkeydown = (e) => { if (e.key === 'Enter') { e.preventDefault(); done(inp.value); } };
+    });
+  }
+  const confirmDlg = (title, text, ok, danger) => dialog({ title, text, ok, danger });
+
   // ---------- Ansichten ----------
   function showView(name) {
     document.querySelectorAll('.tab').forEach(b => b.classList.toggle('active', b.dataset.view === name));
     document.querySelectorAll('.view').forEach(v => v.classList.toggle('active', v.id === 'view-' + name));
     settings.view = name; saveSettings();
+    closeSheet();
     if (name === 'draw') requestAnimationFrame(sizeCanvas);
     if (name === 'write') schedulePreview(0);
-    if (name === 'data') updateStorageInfo();
+    if (name === 'data') { updateStorageInfo(); renderGroupStats(); }
+    window.scrollTo(0, 0);
   }
   document.querySelectorAll('.tab').forEach(b => b.addEventListener('click', () => showView(b.dataset.view)));
 
@@ -66,7 +135,11 @@
     const chars = allChars();
     const done = chars.filter(c => count(c) > 0).length;
     const vars = Object.values(glyphs).reduce((a, l) => a + l.length, 0);
-    $('progress').textContent = `${done}/${chars.length} Zeichen · ${vars} Varianten`;
+    const pct = Math.round(done / chars.length * 100);
+    $('ringBar').style.strokeDashoffset = (113.1 * (1 - done / chars.length)).toFixed(1);
+    $('ringPct').textContent = pct + '%';
+    $('progMain').textContent = `${done} / ${chars.length}`;
+    $('progSub').textContent = `Zeichen · ${vars} Varianten`;
   }
 
   // ======================================================================
@@ -76,59 +149,86 @@
   const ctx = canvas.getContext('2d');
   let unitPx = 1, dpr = 1;
 
-  function fillGroupSelect() {
-    const sel = $('charGroup');
-    sel.innerHTML = '';
-    const opts = [['all', 'Alle Zeichen']].concat(GROUPS.map(g => [g.key, g.name]));
-    if (settings.custom.length) opts.push(['custom', 'Eigene Zeichen']);
-    for (const [k, n] of opts) { const o = document.createElement('option'); o.value = k; o.textContent = n; sel.appendChild(o); }
-    sel.value = opts.some(o => o[0] === settings.group) ? settings.group : 'all';
-  }
-  $('charGroup').addEventListener('change', (e) => { settings.group = e.target.value; saveSettings(); renderGrid(); });
-
-  function gridChars() {
-    if (settings.group === 'all') return allChars();
-    if (settings.group === 'custom') return settings.custom.slice();
-    const g = GROUPS.find(g => g.key === settings.group);
-    return g ? g.chars : allChars();
+  function sheetGroups() {
+    const list = GROUPS.slice();
+    const extra = settings.custom.filter(c => !baseChars.includes(c));
+    if (extra.length) list.push({ key: 'custom', name: 'Eigene Zeichen', chars: extra });
+    return list;
   }
 
-  function renderGrid() {
-    const grid = $('charGrid');
-    grid.innerHTML = '';
+  function renderSheet() {
+    const body = $('charSheet');
+    body.innerHTML = '';
     const target = settings.target;
-    for (const ch of gridChars()) {
-      const b = document.createElement('button');
-      const n = count(ch);
-      b.className = 'cell' + (n >= target ? ' done' : n > 0 ? ' some' : '') + (ch === current ? ' sel' : '');
-      b.innerHTML = '<span></span><span class="n"></span>';
-      b.firstChild.textContent = ch;
-      b.lastChild.textContent = n ? n : '';
-      b.title = `${ch}: ${n} Variante${n === 1 ? '' : 'n'}`;
-      b.addEventListener('click', () => selectChar(ch));
-      grid.appendChild(b);
+    for (const g of sheetGroups()) {
+      const sec = document.createElement('div');
+      sec.className = 'group';
+      const full = g.chars.filter(c => count(c) >= target).length;
+      const title = document.createElement('div');
+      title.className = 'group-title';
+      title.innerHTML = '<span></span><span class="count"></span>';
+      title.firstChild.textContent = g.name;
+      title.lastChild.textContent = `${full}/${g.chars.length}`;
+      if (full === g.chars.length) title.lastChild.classList.add('full');
+      sec.appendChild(title);
+      const grid = document.createElement('div');
+      grid.className = 'chargrid';
+      for (const ch of g.chars) {
+        const b = document.createElement('button');
+        const n = count(ch);
+        b.className = 'cell' + (n >= target ? ' done' : n > 0 ? ' some' : '') + (ch === current ? ' sel' : '');
+        b.textContent = ch;
+        b.dataset.ch = ch;
+        b.title = `${charName(ch)} – ${n} von ${target} Varianten`;
+        if (n) {
+          const f = document.createElement('span');
+          f.className = 'fill';
+          f.style.width = `calc((100% - 12px) * ${Math.min(1, n / target)})`;
+          b.appendChild(f);
+        }
+        b.addEventListener('click', () => { selectChar(ch); if (narrow()) closeSheet(); });
+        grid.appendChild(b);
+      }
+      sec.appendChild(grid);
+      body.appendChild(sec);
     }
     updateProgress();
   }
 
-  function confirmDiscard() {
-    return !dirty || confirm('Die Zeichnung ist noch nicht gespeichert. Verwerfen?');
+  function openSheet() { $('sheet').classList.add('open'); const s = document.querySelector('.cell.sel'); if (s) s.scrollIntoView({ block: 'center' }); }
+  function closeSheet() { $('sheet').classList.remove('open'); }
+  $('sheetBtn').addEventListener('click', openSheet);
+  $('sheetClose').addEventListener('click', closeSheet);
+
+  async function confirmDiscard() {
+    return !dirty || await confirmDlg('Zeichnung verwerfen?', 'Die Striche sind noch nicht gespeichert.', 'Verwerfen', true);
   }
 
-  function selectChar(ch, force) {
+  async function selectChar(ch, force) {
     if (ch === current && !force) return;
-    if (!force && !confirmDiscard()) return;
+    if (!force && !(await confirmDiscard())) return;
     current = ch;
     strokes = []; editingIdx = null; dirty = false;
     settings.current = ch; saveSettings();
     $('currentChar').textContent = ch;
-    $('charHint').textContent = HINTS[groupOf(ch)];
-    renderGrid();
+    $('charName').textContent = charName(ch);
+    const g = groupOf(ch);
+    $('charGroupLabel').textContent = `${g.name} · ${g.chars.indexOf(ch) + 1} von ${g.chars.length}`;
+    $('charHint').textContent = CHAR_HINTS[ch] || GROUP_HINTS[g.key] || '';
+    renderSheet();
     renderVariants();
     redraw();
     const sel = document.querySelector('.cell.sel');
-    if (sel && sel.scrollIntoView) sel.scrollIntoView({ block: 'nearest' });
+    if (sel && !narrow()) sel.scrollIntoView({ block: 'nearest' });
   }
+
+  function step(dir) {
+    const chars = allChars();
+    const i = chars.indexOf(current);
+    selectChar(chars[(i + dir + chars.length) % chars.length]);
+  }
+  $('prevBtn').addEventListener('click', () => step(-1));
+  $('nextBtn').addEventListener('click', () => step(1));
 
   function renderVariants() {
     const box = $('variants');
@@ -137,24 +237,24 @@
     list.forEach((v, i) => {
       const b = document.createElement('div');
       b.className = 'variant' + (editingIdx === i ? ' sel' : '');
-      b.title = 'Antippen zum Korrigieren';
+      b.title = `Variante ${i + 1} – antippen zum Korrigieren`;
       const c = document.createElement('canvas');
       b.appendChild(c);
       const x = document.createElement('button');
       x.className = 'x'; x.textContent = '✕'; x.title = 'Variante löschen';
       x.addEventListener('click', async (e) => {
         e.stopPropagation();
-        if (!confirm(`Variante ${i + 1} von „${current}“ löschen?`)) return;
+        if (!(await confirmDlg(`Variante ${i + 1} löschen?`, `„${current}“ hat danach ${list.length - 1} Variante${list.length - 1 === 1 ? '' : 'n'}.`, 'Löschen', true))) return;
         list.splice(i, 1);
         if (editingIdx === i) { editingIdx = null; strokes = []; dirty = false; }
         else if (editingIdx !== null && editingIdx > i) editingIdx--;
         await persistChar(current);
-        renderVariants(); renderGrid(); redraw();
+        renderVariants(); renderSheet(); redraw();
       });
       b.appendChild(x);
-      b.addEventListener('click', () => {
+      b.addEventListener('click', async () => {
         if (editingIdx === i) return;
-        if (!confirmDiscard()) return;
+        if (!(await confirmDiscard())) return;
         editingIdx = i;
         strokes = v.s.map(s => s.slice());
         dirty = false;
@@ -165,25 +265,29 @@
     });
     const n = document.createElement('button');
     n.className = 'variant new' + (editingIdx === null ? ' sel' : '');
-    n.textContent = '+';
+    n.innerHTML = '<svg><use href="#i-plus"/></svg>';
     n.title = 'Neue Variante zeichnen';
-    n.addEventListener('click', () => {
+    n.addEventListener('click', async () => {
       if (editingIdx === null) return;
-      if (!confirmDiscard()) return;
+      if (!(await confirmDiscard())) return;
       editingIdx = null; strokes = []; dirty = false;
       renderVariants(); redraw();
     });
     box.appendChild(n);
+    for (let k = list.length + 1; k < settings.target; k++) {
+      const s = document.createElement('div');
+      s.className = 'variant slot';
+      box.appendChild(s);
+    }
     updateButtons();
   }
 
   function thumb(c, v) {
     const r = window.devicePixelRatio || 1;
-    const w = c.clientWidth || 56, h = c.clientHeight || 52;
+    const w = c.clientWidth || 58, h = c.clientHeight || 54;
     c.width = w * r; c.height = h * r;
     const g = c.getContext('2d');
-    g.lineCap = 'round'; g.lineJoin = 'round'; g.strokeStyle = '#111';
-    // auf das Zeichen zoomen, kleine Satzzeichen aber nicht riesig aufblasen
+    g.lineCap = 'round'; g.lineJoin = 'round'; g.strokeStyle = INK;
     const b = Ink.bbox(v);
     const bw = b.maxX - b.minX + 16, bh = b.maxY - b.minY + 16;
     const u = Math.min((w * r) / bw, (h * r) / bh, (h * r) / 70);
@@ -196,7 +300,7 @@
     const wrap = $('canvasWrap');
     if (!wrap.offsetParent) return;
     const availW = wrap.clientWidth;
-    const maxH = Math.max(220, window.innerWidth <= 900 ? window.innerHeight * 0.42 : window.innerHeight - 250);
+    const maxH = Math.max(240, window.innerHeight - (narrow() ? 380 : 320));
     const h = Math.min(availW * (M.BOTTOM - M.TOP) / M.WIDTH, maxH);
     dpr = window.devicePixelRatio || 1;
     canvas.style.height = h + 'px';
@@ -207,7 +311,6 @@
   }
   window.addEventListener('resize', () => requestAnimationFrame(sizeCanvas));
 
-  // Einheiten <-> Canvas: x mittig, y von TOP
   const offX = () => (canvas.width / dpr - M.WIDTH * unitPx) / 2;
   const toUnits = (cx, cy) => [(cx - offX()) / unitPx, cy / unitPx + M.TOP];
   const editorMatrix = () => { const k = unitPx * dpr; return [k, 0, 0, k, offX() * dpr, -M.TOP * k]; };
@@ -216,32 +319,47 @@
     const W = canvas.width, H = canvas.height;
     ctx.setTransform(1, 0, 0, 1, 0, 0);
     ctx.clearRect(0, 0, W, H);
-    ctx.fillStyle = '#fff'; ctx.fillRect(0, 0, W, H);
     const k = unitPx * dpr;
     const yOf = (u) => (u - M.TOP) * k;
-    const line = (u, color, dash, width) => {
+    // Grundlinien-Band dezent hervorheben
+    ctx.fillStyle = 'rgba(139,124,255,0.035)';
+    ctx.fillRect(0, yOf(M.XH), W, yOf(0) - yOf(M.XH));
+    const line = (u, color, dash, width, label) => {
       ctx.beginPath(); ctx.setLineDash(dash.map(d => d * dpr)); ctx.strokeStyle = color; ctx.lineWidth = width * dpr;
       ctx.moveTo(0, yOf(u)); ctx.lineTo(W, yOf(u)); ctx.stroke();
+      if (label) {
+        ctx.setLineDash([]); ctx.fillStyle = 'rgba(141,143,163,0.55)';
+        ctx.font = `${11 * dpr}px -apple-system, "Segoe UI", sans-serif`;
+        ctx.fillText(label, 12 * dpr, yOf(u) - 6 * dpr);
+      }
     };
     ctx.lineCap = 'butt';
-    line(M.CAP, '#9fb7d6', [6, 6], 1);
-    line(M.XH, '#b9c9de', [2, 5], 1.2);
-    line(0, '#5f86b8', [], 1.6);
-    line(M.DESC, '#d6dfeb', [6, 6], 1);
+    line(M.CAP, 'rgba(255,255,255,0.13)', [7, 7], 1, 'Großbuchstaben');
+    line(M.XH, 'rgba(255,255,255,0.16)', [2, 6], 1.3, 'Mittellinie');
+    line(0, 'rgba(139,124,255,0.75)', [], 1.6, 'Grundlinie');
+    line(M.DESC, 'rgba(255,255,255,0.08)', [7, 7], 1, 'Unterlänge');
     ctx.setLineDash([]);
+    if (settings.template) {
+      ctx.save();
+      ctx.fillStyle = 'rgba(255,255,255,0.07)';
+      ctx.textAlign = 'center'; ctx.textBaseline = 'alphabetic';
+      ctx.font = `${112 * k}px -apple-system, "Segoe UI", Roboto, sans-serif`;
+      ctx.fillText(current, offX() * dpr + 85 * k, yOf(0));
+      ctx.restore();
+    }
     ctx.lineCap = 'round'; ctx.lineJoin = 'round';
     const m = editorMatrix();
     const bw = M.BASE_W * Math.max(1.1, settings.thick);
     if (settings.ghost) {
-      ctx.strokeStyle = 'rgba(0,0,0,0.12)';
+      ctx.strokeStyle = 'rgba(255,255,255,0.13)';
       (glyphs[current] || []).forEach((v, i) => { if (i !== editingIdx) Ink.drawVariant(ctx, v, m, bw, false); });
     }
-    ctx.strokeStyle = '#111';
+    ctx.strokeStyle = INK;
     for (const s of strokes) Ink.drawStroke(ctx, s, m, bw, settings.pressure);
   }
 
   // ---------- Eingabe ----------
-  let active = null; // { id, s }
+  let active = null;
   function ptFromEvent(e) {
     const r = canvas.getBoundingClientRect();
     const [x, y] = toUnits(e.clientX - r.left, e.clientY - r.top);
@@ -252,7 +370,7 @@
   }
   canvas.addEventListener('pointerdown', (e) => {
     if (e.pointerType === 'pen' && !penSeen) { penSeen = true; $('penBadge').hidden = false; setTimeout(() => { $('penBadge').hidden = true; }, 3000); }
-    if (e.pointerType === 'touch' && penSeen) return;       // Handballen ignorieren
+    if (e.pointerType === 'touch' && penSeen) return;
     if (e.pointerType === 'mouse' && e.button !== 0) return;
     if (active) return;
     e.preventDefault();
@@ -276,15 +394,10 @@
     }
     scheduleRedraw();
   });
-  const endStroke = (e) => {
-    if (!active || e.pointerId !== active.id) return;
-    active = null;
-    redraw();
-  };
+  const endStroke = (e) => { if (!active || e.pointerId !== active.id) return; active = null; redraw(); };
   canvas.addEventListener('pointerup', endStroke);
   canvas.addEventListener('pointercancel', endStroke);
   canvas.addEventListener('contextmenu', (e) => e.preventDefault());
-  // iOS: Scrollen/Lupe beim Zeichnen verhindern
   canvas.addEventListener('touchstart', (e) => e.preventDefault(), { passive: false });
   canvas.addEventListener('touchmove', (e) => e.preventDefault(), { passive: false });
 
@@ -298,12 +411,19 @@
   function updateButtons() {
     $('undoBtn').disabled = !strokes.length;
     $('clearBtn').disabled = !strokes.length;
+    $('templateBtn').classList.toggle('on', !!settings.template);
   }
 
   function undo() { if (!strokes.length) return; strokes.pop(); dirty = true; redraw(); updateButtons(); }
   function clearDrawing() { if (!strokes.length) return; strokes = []; dirty = true; redraw(); updateButtons(); }
   $('undoBtn').addEventListener('click', undo);
   $('clearBtn').addEventListener('click', clearDrawing);
+  function setTemplate(on) {
+    settings.template = on; saveSettings();
+    $('templateToggle').checked = on;
+    updateButtons(); redraw();
+  }
+  $('templateBtn').addEventListener('click', () => setTemplate(!settings.template));
 
   async function persistChar(ch) {
     try { await Store.saveChar(ch, glyphs[ch] || []); }
@@ -313,17 +433,18 @@
 
   async function saveCurrent() {
     if (!strokes.length) {
-      if (editingIdx !== null) { toast('Variante ist leer – zum Löschen das ✕ benutzen.', true); return false; }
-      toast('Erst etwas zeichnen.', true); return false;
+      toast(editingIdx !== null ? 'Variante ist leer – zum Löschen das ✕ benutzen.' : 'Erst etwas zeichnen.', true);
+      return false;
     }
     const variant = { id: Date.now().toString(36) + Math.random().toString(36).slice(2, 7), s: strokes.map(s => s.slice()), t: Date.now() };
     const list = glyphs[current] || (glyphs[current] = []);
-    if (editingIdx !== null && list[editingIdx]) { variant.id = list[editingIdx].id; list[editingIdx] = variant; }
+    const wasEdit = editingIdx !== null && list[editingIdx];
+    if (wasEdit) { variant.id = list[editingIdx].id; list[editingIdx] = variant; }
     else list.push(variant);
     await persistChar(current);
-    const msg = editingIdx !== null ? `„${current}“ Variante ${editingIdx + 1} korrigiert` : `„${current}“ gespeichert (${list.length})`;
+    const msg = wasEdit ? `„${current}“ Variante ${editingIdx + 1} korrigiert` : `„${current}“ gespeichert · ${list.length}/${settings.target}`;
     strokes = []; editingIdx = null; dirty = false;
-    renderVariants(); renderGrid(); redraw();
+    renderVariants(); renderSheet(); redraw();
     toast(msg);
     return true;
   }
@@ -341,28 +462,31 @@
   $('saveBtn').addEventListener('click', saveCurrent);
   $('saveNextBtn').addEventListener('click', async () => {
     if (!(await saveCurrent())) return;
-    if (count(current) < settings.target) return; // erst genug Varianten für dieses Zeichen
+    if (count(current) < settings.target) return;
     const n = nextMissing();
-    if (n) selectChar(n, true); else toast(`Alle Zeichen haben ${settings.target} Varianten. 🎉`);
+    if (n) selectChar(n, true);
+    else toast(`Fertig! Alle ${allChars().length} Zeichen haben ${settings.target} Varianten. 🎉`);
   });
 
-  $('addCharBtn').addEventListener('click', () => {
-    const v = prompt('Welches Zeichen möchtest du hinzufügen? (z. B. § oder ½)');
+  $('addCharBtn').addEventListener('click', async () => {
+    const v = await dialog({ title: 'Eigenes Zeichen', text: 'Welches Zeichen fehlt dir? (z. B. ½, ©, →)', ok: 'Hinzufügen', input: '' });
     if (!v) return;
     const ch = [...v.trim()][0];
     if (!ch) return;
-    if (!allChars().includes(ch)) { settings.custom.push(ch); saveSettings(); fillGroupSelect(); }
+    if (!allChars().includes(ch)) { settings.custom.push(ch); saveSettings(); }
     selectChar(ch);
   });
 
   document.addEventListener('keydown', (e) => {
-    if (!$('view-draw').classList.contains('active')) return;
+    if (!$('view-draw').classList.contains('active') || !$('modal').hidden || !$('welcome').hidden) return;
     const tag = (document.activeElement && document.activeElement.tagName) || '';
     if (/INPUT|TEXTAREA|SELECT/.test(tag)) return;
     if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'z') { e.preventDefault(); undo(); return; }
     if (e.ctrlKey || e.metaKey || e.altKey) return;
     if (e.key === 'Enter') { e.preventDefault(); $('saveNextBtn').click(); return; }
     if (e.key === 'Delete' || e.key === 'Backspace') { e.preventDefault(); clearDrawing(); return; }
+    if (e.key === 'ArrowLeft') { e.preventDefault(); step(-1); return; }
+    if (e.key === 'ArrowRight') { e.preventDefault(); step(1); return; }
     if (e.key.length === 1 && e.key !== ' ' && allChars().includes(e.key)) { e.preventDefault(); selectChar(e.key); }
   });
 
@@ -370,21 +494,24 @@
   // Schreiben
   // ======================================================================
   const RANGES = [
-    ['size', 'size', 'sizeOut', v => v + ' px'],
-    ['thick', 'thick', 'thickOut', v => (+v).toFixed(2)],
-    ['lineGap', 'lineGap', 'lineOut', v => (+v).toFixed(2) + '×'],
-    ['lineWidth', 'lineWidth', 'widthOut', v => v + ' px'],
-    ['variation', 'variation', 'varOut', v => v + ' %'],
-    ['tracking', 'tracking', 'trackOut', v => (v > 0 ? '+' : '') + v],
-    ['wordSpace', 'wordSpace', 'wordOut', v => v],
+    ['size', 'sizeOut', v => v + ' px'],
+    ['thick', 'thickOut', v => (+v).toFixed(2)],
+    ['lineGap', 'lineOut', v => (+v).toFixed(2) + '×'],
+    ['lineWidth', 'widthOut', v => v + ' px'],
+    ['variation', 'varOut', v => v + ' %'],
+    ['tracking', 'trackOut', v => (v > 0 ? '+' : '') + v],
+    ['wordSpace', 'wordOut', v => v],
   ];
-  for (const [id, key, out, fmt] of RANGES) {
-    const el = $(id);
+  const fillRange = (el) => el.style.setProperty('--p', ((el.value - el.min) / (el.max - el.min) * 100).toFixed(1) + '%');
+  for (const [key, out, fmt] of RANGES) {
+    const el = $(key);
     el.value = settings[key];
     $(out).textContent = fmt(settings[key]);
+    fillRange(el);
     el.addEventListener('input', () => {
       settings[key] = parseFloat(el.value);
       $(out).textContent = fmt(settings[key]);
+      fillRange(el);
       saveSettings();
       if (key === 'thick') redraw();
       schedulePreview();
@@ -392,8 +519,7 @@
   }
   $('pressure').checked = settings.pressure;
   $('pressure').addEventListener('change', (e) => { settings.pressure = e.target.checked; saveSettings(); redraw(); schedulePreview(0); });
-  $('bgSelect').value = settings.bg;
-  $('bgSelect').addEventListener('change', (e) => { settings.bg = e.target.value; saveSettings(); applyBg(); });
+  document.querySelectorAll('#bgSeg button').forEach(b => b.addEventListener('click', () => { settings.bg = b.dataset.bg; saveSettings(); applyBg(); }));
   $('reseedBtn').addEventListener('click', () => { settings.seed = (Math.random() * 1e9) | 0; saveSettings(); schedulePreview(0); });
   const ta = $('textInput');
   ta.value = settings.text || '';
@@ -402,41 +528,51 @@
   function renderColors() {
     const box = $('colors');
     box.innerHTML = '';
+    let preset = false;
     for (const c of COLORS) {
       const b = document.createElement('button');
-      b.className = 'swatch' + (settings.color.toLowerCase() === c ? ' sel' : '');
+      const sel = settings.color.toLowerCase() === c;
+      preset = preset || sel;
+      b.className = 'swatch' + (sel ? ' sel' : '');
       b.style.background = c; b.title = c;
       b.addEventListener('click', (e) => { e.preventDefault(); setColor(c); });
       box.appendChild(b);
     }
+    const wrap = document.createElement('label');
+    wrap.className = 'color-pick' + (preset ? '' : ' sel');
+    wrap.title = 'Eigene Farbe';
     const inp = document.createElement('input');
-    inp.type = 'color'; inp.value = settings.color; inp.title = 'Eigene Farbe';
-    inp.addEventListener('input', () => setColor(inp.value));
-    box.appendChild(inp);
+    inp.type = 'color'; inp.value = settings.color;
+    inp.addEventListener('input', () => { settings.color = inp.value.toLowerCase(); saveSettings(); schedulePreview(); });
+    inp.addEventListener('change', () => renderColors());
+    wrap.appendChild(inp);
+    box.appendChild(wrap);
   }
-  function setColor(c) { settings.color = c.toLowerCase(); saveSettings(); renderColors(); schedulePreview(0); }
+  function setColor(c) {
+    settings.color = c.toLowerCase(); saveSettings(); renderColors(); schedulePreview(0);
+    if (c === '#ffffff' && settings.bg === 'lined') { settings.bg = 'dark'; saveSettings(); applyBg(); }
+  }
 
   function applyBg() {
     const p = $('preview');
-    p.classList.remove('bg-lined', 'bg-plain', 'bg-dark', 'bg-checker');
+    p.classList.remove('bg-lined', 'bg-dark', 'bg-checker');
     p.classList.add('bg-' + settings.bg);
+    document.querySelectorAll('#bgSeg button').forEach(b => b.classList.toggle('on', b.dataset.bg === settings.bg));
   }
 
   const EXPORT_RATIO = 3;
   let previewTimer = 0, previewUrl = null;
-  let exportCache = null; // { key, blob, lay }
+  let exportCache = null;
+  let glyphVersion = 0;
   function renderKey() {
     return JSON.stringify([settings.text, settings.color, settings.size, settings.thick, settings.lineGap, settings.lineWidth,
       settings.variation, settings.tracking, settings.wordSpace, settings.pressure, settings.seed, glyphVersion]);
   }
-  let glyphVersion = 0;
   function invalidatePreview() { glyphVersion++; exportCache = null; }
-
   function schedulePreview(delay) {
     clearTimeout(previewTimer);
     previewTimer = setTimeout(updatePreview, delay === undefined ? 180 : delay);
   }
-
   function doLayout() {
     return Ink.layout(settings.text || '', glyphs, {
       size: settings.size, lineGap: settings.lineGap, lineWidth: settings.lineWidth,
@@ -446,12 +582,10 @@
   function renderOpts(ratio) {
     return { size: settings.size, ratio, color: settings.color, thickness: settings.thick, pressure: settings.pressure };
   }
-
   function renderExportSync() {
     const key = renderKey();
     const lay = doLayout();
-    const res = Ink.render(lay, renderOpts(EXPORT_RATIO));
-    return { key, lay, res };
+    return { key, lay, res: Ink.render(lay, renderOpts(EXPORT_RATIO)) };
   }
 
   function updatePreview() {
@@ -461,30 +595,29 @@
     const img = $('previewImg');
     if (!res) {
       img.hidden = true; $('previewEmpty').hidden = false;
-      exportCache = null;
+      exportCache = null; lastPreview = null;
       setExportEnabled(false);
       return;
     }
-    $('previewEmpty').hidden = true;
     res.canvas.toBlob((blob) => {
       if (!blob) return;
-      exportCache = { key, blob, lay, w: res.canvas.width, h: res.canvas.height };
+      exportCache = { key, blob };
       if (previewUrl) URL.revokeObjectURL(previewUrl);
       previewUrl = URL.createObjectURL(blob);
       img.src = previewUrl;
       lastPreview = { cssW: res.cssW, cssH: res.cssH, minY: res.bounds.minY };
       sizePreview();
       img.hidden = false;
+      $('previewEmpty').hidden = true;
       setExportEnabled(true);
     }, 'image/png');
   }
 
-  // Vorschau an die Breite anpassen (Bild bleibt in voller Auflösung), Heftlinien auf die Grundlinie legen
   let lastPreview = null;
   function sizePreview() {
     if (!lastPreview) return;
     const p = $('preview'), img = $('previewImg');
-    const PAD = 24;
+    const PAD = 28;
     const fit = Math.min(1, Math.max(0.1, (p.clientWidth - 2 * PAD) / lastPreview.cssW));
     img.style.width = lastPreview.cssW * fit + 'px';
     img.style.height = lastPreview.cssH * fit + 'px';
@@ -503,20 +636,19 @@
     const box = $('missing');
     if (!set.size) { box.hidden = true; return; }
     box.hidden = false;
-    box.textContent = 'Noch nicht gezeichnet: ';
+    box.textContent = 'Noch nicht gezeichnet:';
     for (const ch of set) {
       const b = document.createElement('button');
-      b.className = 'ghost small'; b.textContent = ch === ' ' ? '␣' : ch;
-      b.title = `„${ch}“ jetzt zeichnen`;
+      b.textContent = ch;
+      b.title = `${charName(ch)} jetzt zeichnen`;
       b.addEventListener('click', () => {
-        if (!allChars().includes(ch)) { settings.custom.push(ch); saveSettings(); fillGroupSelect(); }
+        if (!allChars().includes(ch)) { settings.custom.push(ch); saveSettings(); }
         showView('draw'); selectChar(ch);
       });
       box.appendChild(b);
     }
   }
 
-  // Blob passend zum aktuellen Stand: sofort (Cache) oder als Promise
   function currentPngBlob() {
     const key = renderKey();
     if (exportCache && exportCache.key === key) return exportCache.blob;
@@ -537,16 +669,14 @@
     document.body.appendChild(a); a.click(); a.remove();
     setTimeout(() => URL.revokeObjectURL(url), 30000);
   }
-  const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
 
   $('copyBtn').addEventListener('click', async () => {
     const b = currentPngBlob();
     if (!b) { toast('Nichts zu kopieren.', true); return; }
     if (!navigator.clipboard || typeof ClipboardItem === 'undefined') {
-      toast('Zwischenablage nicht verfügbar (nur über https). Nutze „Teilen“ oder „PNG“.', true); return;
+      toast('Zwischenablage nicht verfügbar. Nutze „Teilen“ oder „PNG“.', true); return;
     }
     try {
-      // Safari will das Promise direkt im Klick sehen
       await navigator.clipboard.write([new ClipboardItem({ 'image/png': b })]);
     } catch (e1) {
       try {
@@ -557,7 +687,7 @@
         toast('Kopieren hat nicht geklappt: ' + (e2.message || e2), true); return;
       }
     }
-    toast(isIOS ? 'Kopiert – in GoodNotes lange tippen → Einsetzen' : 'Kopiert – in GoodNotes mit Strg+V einfügen');
+    toast(isIOS ? '✓ Kopiert – in GoodNotes lange tippen → Einsetzen' : '✓ Kopiert – in GoodNotes mit Strg+V einfügen');
   });
 
   $('shareBtn').addEventListener('click', async () => {
@@ -572,16 +702,12 @@
       toast('Teilen geht hier nicht – PNG wurde gespeichert.');
     }
   });
-
   $('pngBtn').addEventListener('click', async () => {
-    let b = currentPngBlob();
-    if (!b) return;
-    download(await b, fileName('png'));
+    const b = currentPngBlob();
+    if (b) download(await b, fileName('png'));
   });
-
   $('pdfBtn').addEventListener('click', async () => {
-    const lay = doLayout();
-    const blob = await Pdf.build(lay, renderOpts(1));
+    const blob = await Pdf.build(doLayout(), renderOpts(1));
     if (!blob) { toast('Nichts zu speichern.', true); return; }
     const name = fileName('pdf');
     const file = new File([blob], name, { type: 'application/pdf' });
@@ -589,8 +715,6 @@
       try { await navigator.share({ files: [file] }); } catch (e) { if (e.name !== 'AbortError') download(blob, name); }
     } else download(blob, name);
   });
-
-  // Ziehen des Bildes (iPad Split View / PC) als Datei mit Namen
   $('previewImg').addEventListener('dragstart', (e) => {
     if (exportCache && e.dataTransfer) {
       try { e.dataTransfer.setData('DownloadURL', `image/png:${fileName('png')}:${$('previewImg').src}`); } catch (err) {}
@@ -600,27 +724,45 @@
   // ======================================================================
   // Daten
   // ======================================================================
-  $('targetVariants').value = settings.target;
-  $('targetVariants').addEventListener('change', (e) => {
-    settings.target = Math.max(1, Math.min(8, parseInt(e.target.value, 10) || 3));
-    e.target.value = settings.target; $('targetLabel').textContent = settings.target;
-    saveSettings(); renderGrid();
-  });
-  $('targetLabel').textContent = settings.target;
+  function setTarget(n) {
+    settings.target = Math.max(1, Math.min(8, n));
+    $('targetOut').textContent = settings.target;
+    saveSettings(); renderSheet(); renderVariants(); renderGroupStats();
+  }
+  $('targetOut').textContent = settings.target;
+  $('tMinus').addEventListener('click', () => setTarget(settings.target - 1));
+  $('tPlus').addEventListener('click', () => setTarget(settings.target + 1));
   $('ghostToggle').checked = settings.ghost;
   $('ghostToggle').addEventListener('change', (e) => { settings.ghost = e.target.checked; saveSettings(); redraw(); });
+  $('templateToggle').checked = settings.template;
+  $('templateToggle').addEventListener('change', (e) => setTemplate(e.target.checked));
 
-  $('exportBtn').addEventListener('click', async () => {
+  function renderGroupStats() {
+    const box = $('groupStats');
+    box.innerHTML = '';
+    for (const g of sheetGroups()) {
+      const done = g.chars.filter(c => count(c) >= settings.target).length;
+      const row = document.createElement('div');
+      row.className = 'gs';
+      row.innerHTML = '<span></span><span></span><div class="bar"><i></i></div>';
+      row.children[0].textContent = g.name;
+      row.children[1].textContent = `${done} / ${g.chars.length}`;
+      row.querySelector('i').style.width = (done / g.chars.length * 100) + '%';
+      box.appendChild(row);
+    }
+  }
+
+  async function exportData() {
     const data = { app: 'handschrift', version: 1, exported: new Date().toISOString(), custom: settings.custom, glyphs };
     const blob = new Blob([JSON.stringify(data)], { type: 'application/json' });
-    const d = new Date().toISOString().slice(0, 10);
-    const name = `meine-handschrift-${d}.json`;
+    const name = `meine-handschrift-${new Date().toISOString().slice(0, 10)}.json`;
     const file = new File([blob], name, { type: 'application/json' });
     if (isIOS && navigator.canShare && navigator.canShare({ files: [file] })) {
       try { await navigator.share({ files: [file] }); return; } catch (e) { if (e.name === 'AbortError') return; }
     }
     download(blob, name);
-  });
+  }
+  $('exportBtn').addEventListener('click', exportData);
   $('importBtn').addEventListener('click', () => $('importFile').click());
   $('importFile').addEventListener('change', async (e) => {
     const f = e.target.files && e.target.files[0];
@@ -641,19 +783,20 @@
         await Store.saveChar(ch, glyphs[ch]);
       }
       for (const c of (data.custom || [])) if (!allChars().includes(c)) settings.custom.push(c);
-      saveSettings(); fillGroupSelect();
-      invalidatePreview(); renderGrid(); renderVariants(); redraw(); updateStorageInfo();
+      settings.welcomed = true; $('welcome').hidden = true;
+      saveSettings();
+      invalidatePreview(); renderSheet(); renderVariants(); redraw(); updateStorageInfo(); renderGroupStats();
       toast(added ? `${added} Varianten für ${chars} Zeichen importiert` : 'Nichts Neues in der Datei');
     } catch (err) {
       toast('Import fehlgeschlagen: ' + err.message, true);
     }
   });
   $('wipeBtn').addEventListener('click', async () => {
-    if (!confirm('Wirklich ALLE gezeichneten Zeichen auf diesem Gerät löschen? Das lässt sich nicht rückgängig machen.')) return;
+    if (!(await confirmDlg('Alle Zeichen löschen?', 'Alle gezeichneten Zeichen auf diesem Gerät werden gelöscht. Das lässt sich nicht rückgängig machen.', 'Alles löschen', true))) return;
     await Store.clearAll();
     glyphs = {};
     invalidatePreview(); strokes = []; editingIdx = null; dirty = false;
-    renderGrid(); renderVariants(); redraw(); updateStorageInfo();
+    renderSheet(); renderVariants(); redraw(); updateStorageInfo(); renderGroupStats();
     toast('Alles gelöscht');
   });
 
@@ -673,16 +816,28 @@
   }
   $('versionInfo').textContent = `Handschrift ${APP_VERSION}`;
 
+  // ---------- Willkommen ----------
+  $('welcomeGo').addEventListener('click', () => {
+    settings.welcomed = true; saveSettings();
+    $('welcome').hidden = true;
+    showView('draw');
+    selectChar(nextMissing() || 'a', true);
+  });
+  $('welcomeImport').addEventListener('click', () => $('importFile').click());
+
   // ======================================================================
   // Start
   // ======================================================================
   async function init() {
-    applyBg(); renderColors(); fillGroupSelect();
+    applyBg(); renderColors();
     try { glyphs = await Store.loadAll(); } catch (e) { toast('Konnte Zeichen nicht laden: ' + e.message, true); }
     Store.persist();
     current = settings.current && allChars().includes(settings.current) ? settings.current : 'a';
-    selectChar(current, true);
-    showView(settings.view || (Object.keys(glyphs).length ? 'write' : 'draw'));
+    await selectChar(current, true);
+    const hasGlyphs = Object.keys(glyphs).length > 0;
+    if (hasGlyphs) settings.welcomed = true;
+    showView(settings.view || (hasGlyphs ? 'write' : 'draw'));
+    $('welcome').hidden = !!settings.welcomed;
   }
   init();
 
@@ -698,6 +853,5 @@
     }).catch((e) => console.warn('SW', e));
   }
 
-  // Für Tests
-  window.__hs = { get glyphs() { return glyphs; }, get settings() { return settings; }, selectChar, saveCurrent, updatePreview, doLayout };
+  window.__hs = { get glyphs() { return glyphs; }, get settings() { return settings; }, selectChar, saveCurrent, updatePreview, doLayout, allChars };
 })();

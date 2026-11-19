@@ -1,5 +1,5 @@
 // Offline-Cache. Bei jeder Änderung VERSION hochzählen.
-const VERSION = 'hs-1.0.0';
+const VERSION = 'hs-1.1.0';
 const FILES = ['./', 'index.html', 'style.css', 'js/store.js', 'js/ink.js', 'js/pdf.js', 'js/app.js',
   'manifest.webmanifest', 'icons/icon-192.png', 'icons/icon-512.png', 'icons/apple-touch-icon.png'];
 
